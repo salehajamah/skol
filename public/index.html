@@ -131,21 +131,38 @@
         }
       }
       
-      // طريقة 3: من URL parameters مباشرة
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userStr = urlParams.get('user');
-        if (userStr) {
-          const user = JSON.parse(decodeURIComponent(userStr));
-                      if (user?.id) {
-              console.log('✅ Got ID from URL parameters:', user.id);
-              currentTelegramId = user.id.toString();
-              return currentTelegramId;
-            }
-        }
-      } catch (e) {
-        console.log('❌ Error parsing URL parameters:', e);
-      }
+             // طريقة 3: من URL parameters مباشرة
+       try {
+         const urlParams = new URLSearchParams(window.location.search);
+         const userStr = urlParams.get('user');
+         if (userStr) {
+           const user = JSON.parse(decodeURIComponent(userStr));
+           if (user?.id) {
+             console.log('✅ Got ID from URL parameters:', user.id);
+             currentTelegramId = user.id.toString();
+             return currentTelegramId;
+           }
+         }
+         
+         // طريقة بديلة: البحث عن معرف في URL
+         const url = window.location.href;
+         const idMatch = url.match(/[?&]user_id=(\d+)/);
+         if (idMatch) {
+           console.log('✅ Got ID from URL user_id parameter:', idMatch[1]);
+           currentTelegramId = idMatch[1];
+           return currentTelegramId;
+         }
+         
+         // طريقة أخرى: البحث عن معرف في hash
+         const hashMatch = window.location.hash.match(/user_id=(\d+)/);
+         if (hashMatch) {
+           console.log('✅ Got ID from URL hash user_id:', hashMatch[1]);
+           currentTelegramId = hashMatch[1];
+           return currentTelegramId;
+         }
+       } catch (e) {
+         console.log('❌ Error parsing URL parameters:', e);
+       }
       
       // طريقة 4: من hash في URL
       try {
@@ -255,6 +272,62 @@
       }
     }
 
+    // دالة لعرض البيانات المتاحة للتشخيص
+    function debugTelegramData() {
+      const tg = window.Telegram?.WebApp;
+      const debugInfo = {
+        'User Agent': navigator.userAgent,
+        'URL': window.location.href,
+        'Hash': window.location.hash,
+        'Search': window.location.search,
+        'Telegram WebApp Object': !!tg,
+        'initDataUnsafe': tg?.initDataUnsafe,
+        'initData': tg?.initData,
+        'Platform': tg?.platform,
+        'Version': tg?.version,
+        'Theme': tg?.themeParams,
+        'Color Scheme': tg?.colorScheme,
+        'Viewport Height': tg?.viewportHeight,
+        'Viewport Stable Height': tg?.viewportStableHeight,
+        'Header Color': tg?.headerColor,
+        'Background Color': tg?.backgroundColor,
+        'Is Closing Confirmation Enabled': tg?.isClosingConfirmationEnabled,
+        'Back Button': tg?.BackButton,
+        'Main Button': tg?.MainButton,
+        'Haptic Feedback': tg?.HapticFeedback,
+        'Cloud Storage': tg?.CloudStorage,
+        'Popup': tg?.Popup,
+        'Scan QR Popup': tg?.ScanQrPopup,
+        'Settings Button': tg?.SettingsButton,
+        'Theme Params': tg?.themeParams,
+        'Init Data': tg?.initData,
+        'Init Data Unsafe': tg?.initDataUnsafe
+      };
+
+      console.log('🔍 Telegram WebApp Debug Data:', debugInfo);
+      
+      // عرض البيانات في نافذة منبثقة
+      const debugText = JSON.stringify(debugInfo, null, 2);
+      const debugWindow = window.open('', '_blank', 'width=800,height=600');
+      debugWindow.document.write(`
+        <html dir="ltr">
+        <head>
+          <title>Telegram WebApp Debug Data</title>
+          <style>
+            body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+            pre { background: #2a2a2a; padding: 15px; border-radius: 5px; overflow-x: auto; }
+            .copy-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <h2>Telegram WebApp Debug Data</h2>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(document.querySelector('pre').textContent)">نسخ البيانات</button>
+          <pre>${debugText}</pre>
+        </body>
+        </html>
+      `);
+    }
+
     // انتظار تحميل Telegram WebApp ثم البدء
     function initApp() {
       console.log('=== Telegram WebApp Debug Info ===');
@@ -302,17 +375,20 @@
               4️⃣ تحقق من إعدادات Mini App في @BotFather
             </div>
             
-            <div style="margin-top: 20px;">
-              <button onclick="location.reload()" style="background: #ffd166; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
-                إعادة تحميل
-              </button>
-              <button onclick="showManualIdInput()" style="background: #79f2a0; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
-                إدخال المعرف يدوياً
-              </button>
-              <button onclick="window.close()" style="background: #3da9f5; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                إغلاق
-              </button>
-            </div>
+                         <div style="margin-top: 20px;">
+               <button onclick="location.reload()" style="background: #ffd166; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                 إعادة تحميل
+               </button>
+               <button onclick="showManualIdInput()" style="background: #79f2a0; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                 إدخال المعرف يدوياً
+               </button>
+               <button onclick="debugTelegramData()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                 عرض البيانات المتاحة
+               </button>
+               <button onclick="window.close()" style="background: #3da9f5; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                 إغلاق
+               </button>
+             </div>
           </div>
         `;
         return;
