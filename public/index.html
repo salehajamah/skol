@@ -363,6 +363,89 @@
        });
      }
 
+     // دالة لعرض إرشادات إصلاح البوت
+     function showBotSetupGuide() {
+       const guideWindow = window.open('', '_blank', 'width=800,height=600');
+       guideWindow.document.write(`
+         <html dir="rtl">
+         <head>
+           <title>إرشادات إصلاح البوت</title>
+           <style>
+             body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; line-height: 1.6; }
+             .container { max-width: 700px; margin: 0 auto; }
+             h1 { color: #ff6b6b; text-align: center; }
+             h2 { color: #3da9f5; margin-top: 30px; }
+             .step { background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3da9f5; }
+             .warning { background: #ff6b6b; color: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+             .success { background: #79f2a0; color: #000; padding: 15px; border-radius: 8px; margin: 15px 0; }
+             code { background: #333; padding: 5px; border-radius: 3px; font-family: monospace; }
+             .copy-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 10px 0; }
+           </style>
+         </head>
+         <body>
+           <div class="container">
+             <h1>🔧 إرشادات إصلاح البوت</h1>
+             
+             <div class="warning">
+               <strong>⚠️ المشكلة:</strong> التطبيق يُفتح كرابط عادي وليس كـ Mini App داخل Telegram
+             </div>
+             
+             <h2>الخطوات المطلوبة:</h2>
+             
+             <div class="step">
+               <strong>الخطوة 1: حذف Mini App الحالي</strong><br>
+               1. اذهب إلى @BotFather<br>
+               2. أرسل <code>/myapps</code><br>
+               3. اختر البوت الخاص بك<br>
+               4. اختر "Delete App"<br>
+               5. تأكد من الحذف
+             </div>
+             
+             <div class="step">
+               <strong>الخطوة 2: إنشاء Mini App جديد</strong><br>
+               1. أرسل <code>/newapp</code><br>
+               2. اختر البوت الخاص بك<br>
+               3. أدخل اسم التطبيق: "تسجيل الطالبات"<br>
+               4. أدخل الوصف: "تطبيق لتسجيل الطالبات في الصفوف 1-6"<br>
+               5. ارفع صورة (512x512 بكسل)<br>
+               6. أدخل Web App URL: <code>https://skol-i8yf.onrender.com/</code>
+             </div>
+             
+             <div class="step">
+               <strong>الخطوة 3: إعداد Menu Button</strong><br>
+               1. أرسل <code>/setmenubutton</code><br>
+               2. اختر البوت<br>
+               3. أدخل النص: "فتح التطبيق"<br>
+               4. أدخل Web App URL: <code>https://skol-i8yf.onrender.com/</code>
+             </div>
+             
+             <div class="step">
+               <strong>الخطوة 4: إعداد رسالة Start</strong><br>
+               1. أرسل <code>/setstarttext</code><br>
+               2. اختر البوت<br>
+               3. أرسل الرسالة مع زر Web App:
+             </div>
+             
+             <div style="background: #333; padding: 15px; border-radius: 8px; margin: 15px 0; font-family: monospace; font-size: 12px;">
+               مرحباً بك في تطبيق تسجيل الطالبات 📚<br><br>
+               انقر على الزر أدناه لفتح التطبيق 👇<br><br>
+               [{"text":"فتح التطبيق","web_app":{"url":"https://skol-i8yf.onrender.com/"}}]
+             </div>
+             
+             <div class="success">
+               <strong>✅ عند النجاح:</strong><br>
+               - التطبيق سيفتح داخل Telegram<br>
+               - لن تظهر نافذة "Open this link?"<br>
+               - ستكون بيانات المستخدم متاحة تلقائياً
+             </div>
+             
+             <button class="copy-btn" onclick="navigator.clipboard.writeText('https://skol-i8yf.onrender.com/')">نسخ رابط التطبيق</button>
+           </div>
+         </body>
+         </html>
+       `);
+     }
+
      // انتظار تحميل Telegram WebApp ثم البدء
     function initApp() {
       console.log('=== Telegram WebApp Debug Info ===');
@@ -402,12 +485,18 @@
               ${currentUrl}
             </div>
             
-                         <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                         <div style="background: #ff6b6b; padding: 15px; border-radius: 8px; margin: 15px 0; color: white;">
+               <strong>⚠️ المشكلة الأساسية:</strong><br>
+               التطبيق يُفتح كرابط عادي وليس كـ Mini App داخل Telegram!<br>
+               هذا هو سبب عدم توفر بيانات المستخدم.
+             </div>
+             
+             <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
                <strong>الحلول المقترحة:</strong><br>
-               1️⃣ <strong>استخدم "إدخال المعرف يدوياً"</strong> - الحل الأسرع<br>
+               1️⃣ <strong>استخدم "إدخال المعرف يدوياً"</strong> - الحل السريع المؤقت<br>
                2️⃣ <strong>استخدم "اختبار بدون معرف"</strong> - للتجربة السريعة<br>
-               3️⃣ تأكد من فتح التطبيق من البوت في Telegram<br>
-               4️⃣ جرب إعادة تشغيل Telegram<br>
+               3️⃣ <strong>أعد إعداد البوت في @BotFather</strong> - الحل الدائم<br>
+               4️⃣ تأكد من فتح التطبيق من البوت في Telegram<br>
                5️⃣ تحقق من إعدادات Mini App في @BotFather
              </div>
             
@@ -420,6 +509,9 @@
                </button>
                <button onclick="testWithoutId()" style="background: #9c27b0; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
                  اختبار بدون معرف
+               </button>
+               <button onclick="showBotSetupGuide()" style="background: #ff9800; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                 إرشادات إصلاح البوت
                </button>
                <button onclick="debugTelegramData()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
                  عرض البيانات المتاحة
