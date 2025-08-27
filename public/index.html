@@ -84,8 +84,13 @@
 
     // نفس الأصل الذي يقدّم index.html هو نفسه API origin
     const API_ORIGIN = window.location.origin;
+    
+    // متغير عام لتخزين معرف Telegram
+    let currentTelegramId = null;
 
     function getTelegramId() {
+      console.log('🔍 Starting Telegram ID detection...');
+      
       // انتظار تحميل Telegram WebApp
       if (!window.Telegram || !window.Telegram.WebApp) {
         console.log('❌ Telegram WebApp not loaded - App opened outside Telegram');
@@ -93,28 +98,32 @@
       }
       
       const tg = window.Telegram.WebApp;
+      console.log('✅ Telegram WebApp object found');
       
       // التحقق من أن التطبيق يعمل داخل Telegram
-      if (!tg.isVersionAtLeast('6.0')) {
+      if (tg.isVersionAtLeast && !tg.isVersionAtLeast('6.0')) {
         console.log('⚠️ Telegram WebApp version too old');
       }
       
-      // طريقة محسّنة لقراءة Telegram ID
+      // طريقة 1: من initDataUnsafe (الأكثر شيوعاً)
       if (tg?.initDataUnsafe?.user?.id) {
         console.log('✅ Got ID from initDataUnsafe:', tg.initDataUnsafe.user.id);
-        return tg.initDataUnsafe.user.id.toString();
+        currentTelegramId = tg.initDataUnsafe.user.id.toString();
+        return currentTelegramId;
       }
       
-      // طريقة بديلة من initData
+      // طريقة 2: من initData (URL parameters)
       if (tg?.initData) {
         try {
+          console.log('🔍 Parsing initData:', tg.initData);
           const urlParams = new URLSearchParams(tg.initData);
           const userStr = urlParams.get('user');
           if (userStr) {
             const user = JSON.parse(decodeURIComponent(userStr));
             if (user?.id) {
               console.log('✅ Got ID from initData:', user.id);
-              return user.id.toString();
+              currentTelegramId = user.id.toString();
+              return currentTelegramId;
             }
           }
         } catch (e) {
@@ -122,7 +131,47 @@
         }
       }
       
+      // طريقة 3: من URL parameters مباشرة
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userStr = urlParams.get('user');
+        if (userStr) {
+          const user = JSON.parse(decodeURIComponent(userStr));
+                      if (user?.id) {
+              console.log('✅ Got ID from URL parameters:', user.id);
+              currentTelegramId = user.id.toString();
+              return currentTelegramId;
+            }
+        }
+      } catch (e) {
+        console.log('❌ Error parsing URL parameters:', e);
+      }
+      
+      // طريقة 4: من hash في URL
+      try {
+        if (window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const userStr = hashParams.get('user');
+          if (userStr) {
+            const user = JSON.parse(decodeURIComponent(userStr));
+            if (user?.id) {
+              console.log('✅ Got ID from URL hash:', user.id);
+              currentTelegramId = user.id.toString();
+              return currentTelegramId;
+            }
+          }
+        }
+      } catch (e) {
+        console.log('❌ Error parsing URL hash:', e);
+      }
+      
       console.log('❌ No Telegram ID found - User data not available');
+      console.log('Available data:', {
+        initDataUnsafe: tg?.initDataUnsafe,
+        initData: tg?.initData,
+        url: window.location.href,
+        hash: window.location.hash
+      });
       return '';
     }
 
@@ -185,6 +234,27 @@
       else window.close();
     });
 
+    // دالة لإدخال المعرف يدوياً
+    function showManualIdInput() {
+      const manualId = prompt('أدخل معرف Telegram الخاص بك (يمكنك الحصول عليه من @userinfobot):');
+      if (manualId && manualId.trim()) {
+        currentTelegramId = manualId.trim();
+        console.log('✅ Using manual Telegram ID:', currentTelegramId);
+        
+        // تحقق حالة التسجيل
+        stateLine.innerHTML = 'جارِ التحقق <span class="sp"></span>';
+        apiGetStatus(currentTelegramId).then(st => {
+          if (st.exists) {
+            showAlreadyRegistered(st.row);
+          } else {
+            showForm();
+          }
+        }).catch(e => {
+          showError('تعذر التحقق من الحالة.');
+        });
+      }
+    }
+
     // انتظار تحميل Telegram WebApp ثم البدء
     function initApp() {
       console.log('=== Telegram WebApp Debug Info ===');
@@ -196,26 +266,51 @@
       console.log('Version:', window.Telegram?.WebApp?.version);
       console.log('==================================');
       
-      const telegram_id = getTelegramId();
-      console.log('Extracted telegram_id:', telegram_id);
+      currentTelegramId = getTelegramId();
+      console.log('Extracted telegram_id:', currentTelegramId);
 
-      if (!telegram_id) {
+      if (!currentTelegramId) {
         const hasWebApp = !!(window.Telegram && window.Telegram.WebApp);
         const hasUser = !!(window.Telegram?.WebApp?.initDataUnsafe?.user);
+        const hasInitData = !!(window.Telegram?.WebApp?.initData);
+        const currentUrl = window.location.href;
+        
         stateLine.innerHTML = `
           <div style="text-align: center; padding: 20px;">
-            <h3 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ خطأ في الوصول للتطبيق</h3>
-            <p>يجب فتح التطبيق من داخل Telegram وليس من المتصفح.</p>
-            <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
-              <strong>الخطوات الصحيحة:</strong><br>
-              1️⃣ اذهب إلى البوت في Telegram<br>
-              2️⃣ انقر على زر "فتح التطبيق" أو "Start"<br>
-              3️⃣ لا تفتح الرابط مباشرة في المتصفح
+            <h3 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ مشكلة في التعرف على المستخدم</h3>
+            <p>لم يتم العثور على معرف المستخدم في Telegram.</p>
+            
+            <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: left;">
+              <strong>معلومات التشخيص:</strong><br>
+              • WebApp متاح: ${hasWebApp ? '✅' : '❌'}<br>
+              • بيانات المستخدم: ${hasUser ? '✅' : '❌'}<br>
+              • initData متاح: ${hasInitData ? '✅' : '❌'}<br>
+              • المنصة: ${window.Telegram?.WebApp?.platform || 'غير معروف'}<br>
+              • الإصدار: ${window.Telegram?.WebApp?.version || 'غير معروف'}
             </div>
-            <small style="color: #9aa4af;">Debug: WebApp=${hasWebApp}, User=${hasUser}</small>
+            
+            <div style="background: #1a1f2a; padding: 15px; border-radius: 8px; margin: 15px 0; font-family: monospace; font-size: 12px; text-align: left; overflow-x: auto;">
+              <strong>URL الحالي:</strong><br>
+              ${currentUrl}
+            </div>
+            
+            <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <strong>الحلول المقترحة:</strong><br>
+              1️⃣ تأكد من فتح التطبيق من البوت في Telegram<br>
+              2️⃣ جرب إعادة تشغيل Telegram<br>
+              3️⃣ تأكد من أن البوت مُعد بشكل صحيح<br>
+              4️⃣ تحقق من إعدادات Mini App في @BotFather
+            </div>
+            
             <div style="margin-top: 20px;">
+              <button onclick="location.reload()" style="background: #ffd166; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                إعادة تحميل
+              </button>
+              <button onclick="showManualIdInput()" style="background: #79f2a0; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                إدخال المعرف يدوياً
+              </button>
               <button onclick="window.close()" style="background: #3da9f5; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                إغلاق هذه النافذة
+                إغلاق
               </button>
             </div>
           </div>
@@ -225,7 +320,7 @@
 
       // تحقق حالة التسجيل
       stateLine.innerHTML = 'جارِ التحقق <span class="sp"></span>';
-      apiGetStatus(telegram_id).then(st => {
+      apiGetStatus(currentTelegramId).then(st => {
         if (st.exists) {
           showAlreadyRegistered(st.row);
         } else {
@@ -250,7 +345,7 @@
       ev.preventDefault();
       const name = nameEl.value.trim();
       const klass = klassEl.value.trim();
-      const telegram_id = getTelegramId();
+      const telegram_id = currentTelegramId || getTelegramId();
 
       if (!name || !klass || !telegram_id) {
         showError('أكمل الحقول.');
