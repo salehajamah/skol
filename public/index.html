@@ -88,15 +88,20 @@
     function getTelegramId() {
       // انتظار تحميل Telegram WebApp
       if (!window.Telegram || !window.Telegram.WebApp) {
-        console.log('Telegram WebApp not loaded');
+        console.log('❌ Telegram WebApp not loaded - App opened outside Telegram');
         return '';
       }
       
       const tg = window.Telegram.WebApp;
       
+      // التحقق من أن التطبيق يعمل داخل Telegram
+      if (!tg.isVersionAtLeast('6.0')) {
+        console.log('⚠️ Telegram WebApp version too old');
+      }
+      
       // طريقة محسّنة لقراءة Telegram ID
       if (tg?.initDataUnsafe?.user?.id) {
-        console.log('Got ID from initDataUnsafe:', tg.initDataUnsafe.user.id);
+        console.log('✅ Got ID from initDataUnsafe:', tg.initDataUnsafe.user.id);
         return tg.initDataUnsafe.user.id.toString();
       }
       
@@ -108,16 +113,16 @@
           if (userStr) {
             const user = JSON.parse(decodeURIComponent(userStr));
             if (user?.id) {
-              console.log('Got ID from initData:', user.id);
+              console.log('✅ Got ID from initData:', user.id);
               return user.id.toString();
             }
           }
         } catch (e) {
-          console.log('Error parsing initData:', e);
+          console.log('❌ Error parsing initData:', e);
         }
       }
       
-      console.log('No Telegram ID found');
+      console.log('❌ No Telegram ID found - User data not available');
       return '';
     }
 
@@ -182,9 +187,14 @@
 
     // انتظار تحميل Telegram WebApp ثم البدء
     function initApp() {
+      console.log('=== Telegram WebApp Debug Info ===');
+      console.log('User Agent:', navigator.userAgent);
       console.log('Telegram WebApp object:', window.Telegram?.WebApp);
       console.log('initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
       console.log('initData:', window.Telegram?.WebApp?.initData);
+      console.log('Platform:', window.Telegram?.WebApp?.platform);
+      console.log('Version:', window.Telegram?.WebApp?.version);
+      console.log('==================================');
       
       const telegram_id = getTelegramId();
       console.log('Extracted telegram_id:', telegram_id);
@@ -192,7 +202,24 @@
       if (!telegram_id) {
         const hasWebApp = !!(window.Telegram && window.Telegram.WebApp);
         const hasUser = !!(window.Telegram?.WebApp?.initDataUnsafe?.user);
-        stateLine.innerHTML = `تعذر قراءة Telegram ID. تأكد من فتح التطبيق من زر البوت وليس من المتصفح.<br><small>Debug: WebApp=${hasWebApp}, User=${hasUser}</small>`;
+        stateLine.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <h3 style="color: #ff6b6b; margin-bottom: 15px;">⚠️ خطأ في الوصول للتطبيق</h3>
+            <p>يجب فتح التطبيق من داخل Telegram وليس من المتصفح.</p>
+            <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <strong>الخطوات الصحيحة:</strong><br>
+              1️⃣ اذهب إلى البوت في Telegram<br>
+              2️⃣ انقر على زر "فتح التطبيق" أو "Start"<br>
+              3️⃣ لا تفتح الرابط مباشرة في المتصفح
+            </div>
+            <small style="color: #9aa4af;">Debug: WebApp=${hasWebApp}, User=${hasUser}</small>
+            <div style="margin-top: 20px;">
+              <button onclick="window.close()" style="background: #3da9f5; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                إغلاق هذه النافذة
+              </button>
+            </div>
+          </div>
+        `;
         return;
       }
 
