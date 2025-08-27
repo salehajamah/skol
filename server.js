@@ -156,6 +156,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.get('/health', (_, res) => res.send('ok'));
+app.get('/healthz', (_, res) => res.send('ok')); // For Render health check
 
 app.listen(PORT, () => {
   console.log(`listening on :${PORT}`);

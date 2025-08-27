@@ -84,8 +84,26 @@
     const API_ORIGIN = window.location.origin;
 
     function getTelegramId() {
-      const id = tg?.initDataUnsafe?.user?.id;
-      return id ? id.toString() : '';
+      // طريقة محسّنة لقراءة Telegram ID
+      if (tg?.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id.toString();
+      }
+      
+      // طريقة بديلة من initData
+      if (tg?.initData) {
+        try {
+          const urlParams = new URLSearchParams(tg.initData);
+          const userStr = urlParams.get('user');
+          if (userStr) {
+            const user = JSON.parse(decodeURIComponent(userStr));
+            if (user?.id) return user.id.toString();
+          }
+        } catch (e) {
+          console.log('Error parsing initData:', e);
+        }
+      }
+      
+      return '';
     }
 
     async function apiGetStatus(telegram_id) {
@@ -149,10 +167,15 @@
 
     // بدء
     (async () => {
+      console.log('Telegram WebApp object:', tg);
+      console.log('initDataUnsafe:', tg?.initDataUnsafe);
+      console.log('initData:', tg?.initData);
+      
       const telegram_id = getTelegramId();
+      console.log('Extracted telegram_id:', telegram_id);
 
       if (!telegram_id) {
-        stateLine.innerHTML = 'تعذر قراءة Telegram ID. افتح التطبيق من داخل محادثة التليجرام.';
+        stateLine.innerHTML = `تعذر قراءة Telegram ID. افتح التطبيق من داخل محادثة التليجرام.<br><small>Debug: tg=${!!tg}, user=${!!tg?.initDataUnsafe?.user}</small>`;
         return;
       }
 
