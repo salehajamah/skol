@@ -8,7 +8,7 @@ const app = express();
 // ===== الإعدادات من المتغيرات =====
 const PORT = process.env.PORT || 3000;
 const SHEET_ID = process.env.SHEET_ID;                      // مثال: 1XwBsrIo8ZlPp0vBzNoMvBk3c-VEZdrG-pe0WXg5Oo0g
-const SHEET_TAB = process.env.SHEET_TAB || 'التسجيل';       // اسم ورقة التسجيل
+const SHEET_TAB = process.env.SHEET_TAB || 'Registration';   // اسم ورقة التسجيل
 const BOT_TOKEN = process.env.BOT_TOKEN || '';               // للتحقق من Telegram WebApp initData (اختياري لكنه مُستحسن)
 
 // خدمة الحساب (Service Account) كـ JSON-string في متغير بيئة
@@ -57,7 +57,7 @@ function verifyTelegramInitData(initData) {
 }
 
 // ===== أدوات Sheets =====
-const RANGE_READ = `${SHEET_TAB}!A:E`; // Status | اسم الطالبة | الصف | telegram_id | تاريخ التسجيل
+const RANGE_READ = `${SHEET_TAB}!A:E`; // Status | Student_Name | Class | telegram_id | Registration_Date
 
 async function findByTelegramId(telegramId) {
   const res = await sheets.spreadsheets.values.get({
@@ -69,10 +69,10 @@ async function findByTelegramId(telegramId) {
 
   const header = rows[0]; // العناوين
   const idxStatus = header.indexOf('Status');
-  const idxName = header.indexOf('اسم الطالبة');
-  const idxClass = header.indexOf('الصف');
+  const idxName = header.indexOf('Student_Name');
+  const idxClass = header.indexOf('Class');
   const idxTg = header.indexOf('telegram_id');
-  const idxDate = header.indexOf('تاريخ التسجيل');
+  const idxDate = header.indexOf('Registration_Date');
 
   if (idxTg === -1) {
     throw new Error('لم يتم العثور على عمود telegram_id في ورقة التسجيل.');
