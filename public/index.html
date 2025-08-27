@@ -13,13 +13,13 @@
     .card { background:var(--card); border-radius:16px; padding:20px; box-shadow: 0 2px 16px rgba(0,0,0,.25); }
     h1 { font-size:20px; margin:0 0 12px; }
     p { color:var(--muted); margin:0 0 16px; line-height:1.6; }
-    label { display:block; margin:12px 0 6px; font-weight:600; }
-    input, select, button {
-      width:100%; padding:12px 14px; border-radius:12px; border:1px solid #2a313b; background:#0d1117; color:var(--text);
-      outline:none;
-    }
+         label { display:block; margin:16px 0 8px; font-weight:600; font-size: 14px; }
+         input, select, button {
+       width:100%; padding:16px 18px; border-radius:12px; border:1px solid #2a313b; background:#0d1117; color:var(--text);
+       outline:none; margin-bottom: 8px;
+     }
     input:focus, select:focus { border-color: var(--accent); }
-    button { background:var(--accent); border:none; color:#0b0e12; font-weight:700; cursor:pointer; }
+         button { background:var(--accent); border:none; color:#0b0e12; font-weight:700; cursor:pointer; margin-top: 16px; }
     .muted { color:var(--muted); font-size:13px; margin-top:8px; }
     .row { display:grid; gap:12px; grid-template-columns: 1fr 1fr; }
     .hidden { display:none !important; }
@@ -36,24 +36,31 @@
       <h1>التسجيل</h1>
       <p id="stateLine">جارِ التحقق من حالتك...</p>
 
-      <form id="form" class="hidden" autocomplete="off">
-        <label for="name">الاسم الثلاثي</label>
-        <input id="name" name="name" required placeholder="مثال: ريم أحمد محمد" inputmode="text" />
+             <form id="form" class="hidden" autocomplete="off">
+         <label for="name">الاسم الثلاثي</label>
+         <input id="name" name="name" required placeholder="مثال: ريم أحمد محمد" inputmode="text" />
 
-        <label for="klass">الصف</label>
-        <select id="klass" name="klass" required>
-          <option value="">اختر الصف</option>
-          <option value="الصف 1">الصف 1</option>
-          <option value="الصف 2">الصف 2</option>
-          <option value="الصف 3">الصف 3</option>
-          <option value="الصف 4">الصف 4</option>
-          <option value="الصف 5">الصف 5</option>
-          <option value="الصف 6">الصف 6</option>
-        </select>
+         <label for="stage">المرحلة</label>
+         <select id="stage" name="stage" required>
+           <option value="">اختر المرحلة</option>
+           <option value="ابتدائي">ابتدائي</option>
+           <option value="متوسط">متوسط</option>
+           <option value="ثانوي">ثانوي</option>
+         </select>
 
-        <button type="submit" id="submitBtn">تسجيل</button>
-        <div class="muted">سيتم إغلاق التطبيق تلقائيًا بعد الإرسال.</div>
-      </form>
+         <label for="grade">الصف</label>
+         <select id="grade" name="grade" required disabled>
+           <option value="">اختر المرحلة أولاً</option>
+         </select>
+
+         <label for="classNumber">رقم الصف</label>
+         <select id="classNumber" name="classNumber" required disabled>
+           <option value="">اختر الصف أولاً</option>
+         </select>
+
+         <button type="submit" id="submitBtn">تسجيل</button>
+         <div class="muted">سيتم إغلاق التطبيق تلقائيًا بعد الإرسال.</div>
+       </form>
 
       <div id="result" class="hidden"></div>
 
@@ -78,9 +85,11 @@
     const result = qs('#result');
     const closeWrap = qs('#closeWrap');
     const closeBtn = qs('#closeBtn');
-    const nameEl = qs('#name');
-    const klassEl = qs('#klass');
-    const submitBtn = qs('#submitBtn');
+         const nameEl = qs('#name');
+     const stageEl = qs('#stage');
+     const gradeEl = qs('#grade');
+     const classNumberEl = qs('#classNumber');
+     const submitBtn = qs('#submitBtn');
 
     // نفس الأصل الذي يقدّم index.html هو نفسه API origin
     const API_ORIGIN = window.location.origin;
@@ -221,13 +230,58 @@
       return await r.json();
     }
 
-    function showForm() {
-      stateLine.textContent = 'أدخل الاسم واختر الصف لإتمام التسجيل.';
-      form.classList.remove('hidden');
-      result.classList.add('hidden');
-      closeWrap.classList.add('hidden');
-      nameEl.focus();
-    }
+         // بيانات المراحل والصفوف
+     const stageData = {
+       'ابتدائي': ['أول', 'ثاني', 'ثالث', 'رابع', 'خامس', 'سادس'],
+       'متوسط': ['أول', 'ثاني', 'ثالث'],
+       'ثانوي': ['أول', 'ثاني', 'ثالث']
+     };
+
+     // دالة لتحديث قائمة الصفوف
+     function updateGradeOptions() {
+       const selectedStage = stageEl.value;
+       gradeEl.innerHTML = '<option value="">اختر الصف</option>';
+       classNumberEl.innerHTML = '<option value="">اختر الصف أولاً</option>';
+       
+       if (selectedStage && stageData[selectedStage]) {
+         gradeEl.disabled = false;
+         stageData[selectedStage].forEach(grade => {
+           const option = document.createElement('option');
+           option.value = grade;
+           option.textContent = grade;
+           gradeEl.appendChild(option);
+         });
+       } else {
+         gradeEl.disabled = true;
+         classNumberEl.disabled = true;
+       }
+     }
+
+     // دالة لتحديث قائمة أرقام الصفوف
+     function updateClassNumberOptions() {
+       const selectedGrade = gradeEl.value;
+       classNumberEl.innerHTML = '<option value="">اختر رقم الصف</option>';
+       
+       if (selectedGrade) {
+         classNumberEl.disabled = false;
+         for (let i = 1; i <= 10; i++) {
+           const option = document.createElement('option');
+           option.value = i;
+           option.textContent = i;
+           classNumberEl.appendChild(option);
+         }
+       } else {
+         classNumberEl.disabled = true;
+       }
+     }
+
+     function showForm() {
+       stateLine.textContent = 'أدخل الاسم واختر المرحلة والصف لإتمام التسجيل.';
+       form.classList.remove('hidden');
+       result.classList.add('hidden');
+       closeWrap.classList.add('hidden');
+       nameEl.focus();
+     }
 
     function showAlreadyRegistered(row) {
       form.classList.add('hidden');
@@ -547,26 +601,32 @@
       setTimeout(initApp, 100);
     }
 
-    // إرسال التسجيل
-    form.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      const name = nameEl.value.trim();
-      const klass = klassEl.value.trim();
-      const telegram_id = currentTelegramId || getTelegramId();
+         // إضافة event listeners للقوائم المنسدلة
+     stageEl.addEventListener('change', updateGradeOptions);
+     gradeEl.addEventListener('change', updateClassNumberOptions);
 
-      if (!name || !klass || !telegram_id) {
-        showError('أكمل الحقول.');
-        return;
-      }
+     // إرسال التسجيل
+     form.addEventListener('submit', async (ev) => {
+       ev.preventDefault();
+       const name = nameEl.value.trim();
+       const stage = stageEl.value.trim();
+       const grade = gradeEl.value.trim();
+       const classNumber = classNumberEl.value.trim();
+       const telegram_id = currentTelegramId || getTelegramId();
+
+       if (!name || !stage || !grade || !classNumber || !telegram_id) {
+         showError('أكمل جميع الحقول.');
+         return;
+       }
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'يتم الإرسال...';
 
-      try {
-        const res = await apiRegister({
-          name, klass, telegram_id,
-          initData: tg?.initData || ''
-        });
+             try {
+         const res = await apiRegister({
+           name, stage, grade, classNumber, telegram_id,
+           initData: tg?.initData || ''
+         });
         if (res.status === 'exists') {
           showAlreadyRegistered(res.row);
         } else if (res.status === 'ok') {

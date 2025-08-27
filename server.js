@@ -57,7 +57,7 @@ function verifyTelegramInitData(initData) {
 }
 
 // ===== أدوات Sheets =====
-const RANGE_READ = `${SHEET_TAB}!A:E`; // Status | Student_Name | Class | telegram_id | Registration_Date
+const RANGE_READ = `${SHEET_TAB}!A:G`; // telegram_id | state | Student_Name | Stage | Grade | Class | Registration_Date
 
 async function findByTelegramId(telegramId) {
   const res = await sheets.spreadsheets.values.get({
@@ -68,10 +68,12 @@ async function findByTelegramId(telegramId) {
   if (rows.length === 0) return null;
 
   const header = rows[0]; // العناوين
-  const idxStatus = header.indexOf('Status');
-  const idxName = header.indexOf('Student_Name');
-  const idxClass = header.indexOf('Class');
   const idxTg = header.indexOf('telegram_id');
+  const idxState = header.indexOf('state');
+  const idxName = header.indexOf('Student_Name');
+  const idxStage = header.indexOf('Stage');
+  const idxGrade = header.indexOf('Grade');
+  const idxClass = header.indexOf('Class');
   const idxDate = header.indexOf('Registration_Date');
 
   if (idxTg === -1) {
@@ -84,8 +86,10 @@ async function findByTelegramId(telegramId) {
     if (tgCell === telegramId) {
       return {
         rowNumber: i + 1, // 1-based
-        Status: idxStatus >= 0 ? (r[idxStatus] || '') : '',
+        state: idxState >= 0 ? (r[idxState] || '') : '',
         name: idxName >= 0 ? (r[idxName] || '') : '',
+        stage: idxStage >= 0 ? (r[idxStage] || '') : '',
+        grade: idxGrade >= 0 ? (r[idxGrade] || '') : '',
         class: idxClass >= 0 ? (r[idxClass] || '') : '',
         telegram_id: tgCell,
         registered_at: idxDate >= 0 ? (r[idxDate] || '') : ''
@@ -95,9 +99,9 @@ async function findByTelegramId(telegramId) {
   return null;
 }
 
-async function appendRegistration({ name, klass, telegram_id, dateISO }) {
+async function appendRegistration({ name, stage, grade, classNumber, telegram_id, dateISO }) {
   const values = [
-    ['registered', name, klass, telegram_id, dateISO]
+    [telegram_id, 'registered', name, stage, grade, classNumber, dateISO]
   ];
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
@@ -125,10 +129,10 @@ app.get('/api/status', async (req, res) => {
 // تسجيل
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, klass, telegram_id, initData } = req.body || {};
+    const { name, stage, grade, classNumber, telegram_id, initData } = req.body || {};
 
-    if (!telegram_id || !name || !klass) {
-      return res.status(400).json({ error: 'name/klass/telegram_id مطلوبة' });
+    if (!telegram_id || !name || !stage || !grade || !classNumber) {
+      return res.status(400).json({ error: 'name/stage/grade/classNumber/telegram_id مطلوبة' });
     }
 
     // تحقق اختياري من initData
@@ -144,7 +148,9 @@ app.post('/api/register', async (req, res) => {
     const dateISO = new Date().toISOString();
     await appendRegistration({
       name: name.toString().trim(),
-      klass: klass.toString().trim(),
+      stage: stage.toString().trim(),
+      grade: grade.toString().trim(),
+      classNumber: classNumber.toString().trim(),
       telegram_id: telegram_id.toString().trim(),
       dateISO
     });
