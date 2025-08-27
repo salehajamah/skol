@@ -164,23 +164,35 @@
          console.log('❌ Error parsing URL parameters:', e);
        }
       
-      // طريقة 4: من hash في URL
-      try {
-        if (window.location.hash) {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const userStr = hashParams.get('user');
-          if (userStr) {
-            const user = JSON.parse(decodeURIComponent(userStr));
-            if (user?.id) {
-              console.log('✅ Got ID from URL hash:', user.id);
-              currentTelegramId = user.id.toString();
-              return currentTelegramId;
-            }
-          }
-        }
-      } catch (e) {
-        console.log('❌ Error parsing URL hash:', e);
-      }
+             // طريقة 4: من hash في URL
+       try {
+         if (window.location.hash) {
+           const hashParams = new URLSearchParams(window.location.hash.substring(1));
+           const userStr = hashParams.get('user');
+           if (userStr) {
+             const user = JSON.parse(decodeURIComponent(userStr));
+             if (user?.id) {
+               console.log('✅ Got ID from URL hash:', user.id);
+               currentTelegramId = user.id.toString();
+               return currentTelegramId;
+             }
+           }
+         }
+       } catch (e) {
+         console.log('❌ Error parsing URL hash:', e);
+       }
+       
+       // طريقة 5: من localStorage (إذا تم حفظه مسبقاً)
+       try {
+         const savedId = localStorage.getItem('telegram_user_id');
+         if (savedId && savedId.trim()) {
+           console.log('✅ Got ID from localStorage:', savedId);
+           currentTelegramId = savedId.trim();
+           return currentTelegramId;
+         }
+       } catch (e) {
+         console.log('❌ Error reading from localStorage:', e);
+       }
       
       console.log('❌ No Telegram ID found - User data not available');
       console.log('Available data:', {
@@ -256,6 +268,8 @@
       const manualId = prompt('أدخل معرف Telegram الخاص بك (يمكنك الحصول عليه من @userinfobot):');
       if (manualId && manualId.trim()) {
         currentTelegramId = manualId.trim();
+        // حفظ المعرف في localStorage للاستخدام المستقبلي
+        localStorage.setItem('telegram_user_id', currentTelegramId);
         console.log('✅ Using manual Telegram ID:', currentTelegramId);
         
         // تحقق حالة التسجيل
@@ -325,10 +339,31 @@
           <pre>${debugText}</pre>
         </body>
         </html>
-      `);
-    }
+             `);
+     }
 
-    // انتظار تحميل Telegram WebApp ثم البدء
+     // دالة لاختبار التطبيق بدون معرف Telegram
+     function testWithoutId() {
+       const testId = '123456789'; // معرف تجريبي
+       currentTelegramId = testId;
+       console.log('🧪 Testing with dummy ID:', testId);
+       
+       // تحقق حالة التسجيل
+       stateLine.innerHTML = 'جارِ التحقق <span class="sp"></span>';
+       apiGetStatus(testId).then(st => {
+         if (st.exists) {
+           showAlreadyRegistered(st.row);
+         } else {
+           showForm();
+         }
+       }).catch(e => {
+         console.log('Test API call failed:', e);
+         // إذا فشل الاتصال بالخادم، اعرض النموذج مباشرة
+         showForm();
+       });
+     }
+
+     // انتظار تحميل Telegram WebApp ثم البدء
     function initApp() {
       console.log('=== Telegram WebApp Debug Info ===');
       console.log('User Agent:', navigator.userAgent);
@@ -367,13 +402,14 @@
               ${currentUrl}
             </div>
             
-            <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
-              <strong>الحلول المقترحة:</strong><br>
-              1️⃣ تأكد من فتح التطبيق من البوت في Telegram<br>
-              2️⃣ جرب إعادة تشغيل Telegram<br>
-              3️⃣ تأكد من أن البوت مُعد بشكل صحيح<br>
-              4️⃣ تحقق من إعدادات Mini App في @BotFather
-            </div>
+                         <div style="background: #2a313b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+               <strong>الحلول المقترحة:</strong><br>
+               1️⃣ <strong>استخدم "إدخال المعرف يدوياً"</strong> - الحل الأسرع<br>
+               2️⃣ <strong>استخدم "اختبار بدون معرف"</strong> - للتجربة السريعة<br>
+               3️⃣ تأكد من فتح التطبيق من البوت في Telegram<br>
+               4️⃣ جرب إعادة تشغيل Telegram<br>
+               5️⃣ تحقق من إعدادات Mini App في @BotFather
+             </div>
             
                          <div style="margin-top: 20px;">
                <button onclick="location.reload()" style="background: #ffd166; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
@@ -381,6 +417,9 @@
                </button>
                <button onclick="showManualIdInput()" style="background: #79f2a0; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
                  إدخال المعرف يدوياً
+               </button>
+               <button onclick="testWithoutId()" style="background: #9c27b0; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                 اختبار بدون معرف
                </button>
                <button onclick="debugTelegramData()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
                  عرض البيانات المتاحة
