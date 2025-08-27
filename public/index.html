@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تسجيل الطالبة</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root { --bg:#0e1217; --card:#151a21; --text:#e6e6e6; --muted:#9aa4af; --accent:#3da9f5; }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", "Noto Naskh Arabic", Arial, sans-serif; }
@@ -62,7 +63,6 @@
     </div>
   </div>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (tg) {
@@ -86,8 +86,17 @@
     const API_ORIGIN = window.location.origin;
 
     function getTelegramId() {
+      // انتظار تحميل Telegram WebApp
+      if (!window.Telegram || !window.Telegram.WebApp) {
+        console.log('Telegram WebApp not loaded');
+        return '';
+      }
+      
+      const tg = window.Telegram.WebApp;
+      
       // طريقة محسّنة لقراءة Telegram ID
       if (tg?.initDataUnsafe?.user?.id) {
+        console.log('Got ID from initDataUnsafe:', tg.initDataUnsafe.user.id);
         return tg.initDataUnsafe.user.id.toString();
       }
       
@@ -98,13 +107,17 @@
           const userStr = urlParams.get('user');
           if (userStr) {
             const user = JSON.parse(decodeURIComponent(userStr));
-            if (user?.id) return user.id.toString();
+            if (user?.id) {
+              console.log('Got ID from initData:', user.id);
+              return user.id.toString();
+            }
           }
         } catch (e) {
           console.log('Error parsing initData:', e);
         }
       }
       
+      console.log('No Telegram ID found');
       return '';
     }
 
@@ -167,33 +180,43 @@
       else window.close();
     });
 
-    // بدء
-    (async () => {
-      console.log('Telegram WebApp object:', tg);
-      console.log('initDataUnsafe:', tg?.initDataUnsafe);
-      console.log('initData:', tg?.initData);
+    // انتظار تحميل Telegram WebApp ثم البدء
+    function initApp() {
+      console.log('Telegram WebApp object:', window.Telegram?.WebApp);
+      console.log('initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
+      console.log('initData:', window.Telegram?.WebApp?.initData);
       
       const telegram_id = getTelegramId();
       console.log('Extracted telegram_id:', telegram_id);
 
       if (!telegram_id) {
-        stateLine.innerHTML = `تعذر قراءة Telegram ID. افتح التطبيق من داخل محادثة التليجرام.<br><small>Debug: tg=${!!tg}, user=${!!tg?.initDataUnsafe?.user}</small>`;
+        const hasWebApp = !!(window.Telegram && window.Telegram.WebApp);
+        const hasUser = !!(window.Telegram?.WebApp?.initDataUnsafe?.user);
+        stateLine.innerHTML = `تعذر قراءة Telegram ID. تأكد من فتح التطبيق من زر البوت وليس من المتصفح.<br><small>Debug: WebApp=${hasWebApp}, User=${hasUser}</small>`;
         return;
       }
 
       // تحقق حالة التسجيل
       stateLine.innerHTML = 'جارِ التحقق <span class="sp"></span>';
-      try {
-        const st = await apiGetStatus(telegram_id);
+      apiGetStatus(telegram_id).then(st => {
         if (st.exists) {
           showAlreadyRegistered(st.row);
         } else {
           showForm();
         }
-      } catch (e) {
+      }).catch(e => {
         showError('تعذر التحقق من الحالة.');
-      }
-    })();
+      });
+    }
+
+    // بدء التطبيق بعد تحميل كامل
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initApp, 100); // انتظار قصير لتحميل Telegram script
+      });
+    } else {
+      setTimeout(initApp, 100);
+    }
 
     // إرسال التسجيل
     form.addEventListener('submit', async (ev) => {
